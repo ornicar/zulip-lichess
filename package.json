@@ -10,7 +10,9 @@
     "typescript": "^4.2"
   },
   "dependencies": {
+    "@types/node-fetch": "^2.5.10",
     "handy-redis": "^2.2.1",
+    "node-fetch": "^2.6.1",
     "redis": "^3.1.2",
     "zulip-js": "^2"
   },
