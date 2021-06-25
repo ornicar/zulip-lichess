@@ -1,0 +1,107 @@
+export interface Zulip {
+  queues: any;
+  events: any;
+  users: any;
+  messages: any;
+  reactions: any;
+}
+
+export type UserId = number;
+
+export interface ZulipOrigStream {
+  type: 'stream';
+  sender_id: UserId;
+  stream_id: number;
+  subject: string;
+}
+
+export interface ZulipOrigPrivate {
+  type: 'private';
+  sender_id: UserId;
+  recipient_id: UserId;
+}
+
+export type ZulipOrig = ZulipOrigStream | ZulipOrigPrivate;
+
+export interface ZulipMsgStream extends ZulipOrigStream {
+  id: number;
+  content: string;
+  command: string;
+}
+export interface ZulipMsgPrivate extends ZulipOrigPrivate {
+  id: number;
+  content: string;
+  command: string;
+}
+
+export type ZulipMsg = ZulipMsgStream | ZulipMsgPrivate;
+
+export interface ZulipDestStream {
+  type: 'stream';
+  to: number;
+  topic: string;
+}
+
+export interface ZulipDestPrivate {
+  type: 'private';
+  to: [UserId];
+}
+
+export type ZulipDest = ZulipDestStream | ZulipDestPrivate;
+
+export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Promise<void>) => {
+  const q = await zulip.queues.register({ event_types: ['message'] });
+  const me = await zulip.users.me.getProfile();
+  let lastEventId = q.last_event_id;
+  console.log('Connected to zulip, awaiting commands');
+  while (true) {
+    const res = await zulip.events.retrieve({
+      queue_id: q.queue_id,
+      last_event_id: lastEventId,
+    });
+    res.events.forEach(async (event: any) => {
+      lastEventId = event.id;
+      if (event.type == 'heartbeat') console.log('Zulip heartbeat');
+      else if (event.message) {
+        // ignore own messages
+        if (event.message.sender_id != me.user_id) {
+          event.message.command = event.message.content.replace(`@**${me.full_name}**`, '').trim();
+          await handler(event.message as ZulipMsg);
+        }
+      } else console.log(event);
+    });
+  }
+};
+
+export const botName = async (zulip: Zulip): Promise<string> => {
+  const me = await zulip.users.me.getProfile();
+  return me.full_name;
+};
+
+const origToDest = (orig: ZulipOrig): ZulipDest => {
+  return orig.type == 'stream'
+    ? {
+        type: 'stream',
+        to: orig.stream_id,
+        topic: orig.subject,
+      }
+    : {
+        type: 'private',
+        to: [orig.sender_id],
+      };
+};
+
+export const send = async (zulip: Zulip, dest: ZulipDest, text: string) => {
+  await zulip.messages.send({
+    ...dest,
+    content: text,
+  });
+};
+
+export const reply = async (zulip: Zulip, to: ZulipMsg, text: string) => await send(zulip, origToDest(to), text);
+
+export const react = async (zulip: Zulip, to: ZulipMsg, emoji: string) =>
+  await zulip.reactions.add({
+    message_id: to.id,
+    emoji_name: emoji,
+  });
