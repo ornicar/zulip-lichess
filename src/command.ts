@@ -24,13 +24,20 @@ export interface Fortune {
   verb: 'fortune';
 }
 
+export interface Play {
+  verb: 'play';
+  min: number;
+  inc: number;
+  rated: boolean;
+}
+
 export interface Help {
   verb: 'help';
 }
 
-type Command = ParrotAdd | ParrotDel | Hi | Fortune | Help | ParrotGet;
+type Command = ParrotAdd | ParrotDel | Hi | Fortune | Play | Help | ParrotGet;
 
-const all = new Set(['add', 'del', 'list', 'hi', 'hello', 'help', 'halp', 'h', 'fortune']);
+const all = new Set(['add', 'del', 'list', 'hi', 'hello', 'help', 'halp', 'h', 'fortune', 'play']);
 
 export const parseCommand = (cmd: string, _orig: ZulipOrig): Command => {
   const split = cmd.split(' ').map(t => t.trim());
@@ -42,5 +49,16 @@ export const parseCommand = (cmd: string, _orig: ZulipOrig): Command => {
   if (verb == 'fortune') return { verb };
   if (verb == 'hi' || verb == 'hello') return { verb: 'hi' };
   if (verb == 'help' || verb == 'halp' || verb == 'h') return { verb: 'help' };
+  if (verb == 'play') return parsePlay(split);
   return { verb: 'parrotGet', key: cmd };
+};
+
+const parsePlay = (words: string[]): Play => {
+  const [min, inc] = words[1].split('+').map(x => parseInt(x));
+  return {
+    verb: 'play',
+    min,
+    inc,
+    rated: words.includes('rated'),
+  };
 };

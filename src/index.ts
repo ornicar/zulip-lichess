@@ -1,8 +1,9 @@
 import * as zulipInit from 'zulip-js';
-import { Zulip, ZulipMsg, messageLoop, reply, send, react, ZulipDestPrivate, botName } from './zulip';
-import { parseCommand } from './command';
+import { Zulip, ZulipMsg, messageLoop, reply, react, botName } from './zulip';
+import { parseCommand, Play } from './command';
 import { RedisParrot } from './parrot';
 import fetch from 'node-fetch';
+import { URLSearchParams } from 'url';
 
 (async () => {
   const z: Zulip = await zulipInit.default({ zuliprc: 'zuliprc' });
@@ -32,14 +33,35 @@ import fetch from 'node-fetch';
         case 'fortune':
           await fortune(msg);
           break;
+        case 'play':
+          await play(msg, command);
+          break;
         case 'help':
           await help(msg);
           break;
       }
     } catch (err) {
       console.log(err);
-      await reply(z, msg, 'Sorry, I could not parse that. Try the help command, maybe?');
+      await react(z, msg, 'cross_mark');
     }
+  };
+
+  const play = async (msg: ZulipMsg, cmd: Play) => {
+    const params = new URLSearchParams();
+    params.append('clock.limit', '' + cmd.min * 60);
+    params.append('clock.increment', '' + cmd.inc);
+    if (cmd.rated) params.append('rated', 'true');
+    const res = await fetch('https://lichess.org/api/challenge/open', {
+      method: 'post',
+      body: params,
+    });
+    const j = await res.json();
+    const c = j.challenge;
+    await reply(
+      z,
+      msg,
+      `Let's play ${c.timeControl.show} ${c.rated ? 'rated' : 'casual'} ${c.url} <- Anyone can join!`
+    );
   };
 
   const fortune = async (msg: ZulipMsg) => {
@@ -55,10 +77,12 @@ import fetch from 'node-fetch';
       z,
       msg,
       [
-        '- `' + mention + ' add key message` Save a message with a key.',
-        '- `' + mention + ' key` Repeat the message associated with this key.',
-        '- `' + mention + ' del key` Delete the message associated with this key.',
-        '- `' + mention + ' fortune` get a Linux kernel fortune message',
+        '- `' + mention + ' add key message` Save a message with a key',
+        '- `' + mention + ' key` Repeat the message associated with this key',
+        '- `' + mention + ' del key` Delete the message associated with this key',
+        '- `' + mention + ' play 3+2` Create a casual 3+2 open challenge for anyone to join',
+        '- `' + mention + ' play 5+0 rated` Create a rated 5+0 open challenge for anyone to join',
+        '- `' + mention + ' fortune` Get a Linux kernel fortune message',
       ].join('\n')
     );
   };
