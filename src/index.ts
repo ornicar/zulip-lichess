@@ -55,8 +55,7 @@ import { URLSearchParams } from 'url';
       method: 'post',
       body: params,
     });
-    const j = await res.json();
-    const c = j.challenge;
+    const c = (await res.json()).challenge;
     await reply(
       z,
       msg,
