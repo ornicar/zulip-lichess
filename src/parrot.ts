@@ -9,7 +9,10 @@ export interface Parrot {
 
 // Just one possible implementation.
 export class RedisParrot implements Parrot {
-  private client = createNodeRedisClient();
+  private client = createNodeRedisClient({
+    port: parseInt(process.env.REDIS_PORT),
+    password: process.env.REDIS_PASSWORD,
+  });
   private key = 'zulip-lichess-parrot';
 
   add = async (key: string, value: string) => {

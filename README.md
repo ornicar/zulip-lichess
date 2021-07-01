@@ -50,6 +50,8 @@ After=network.target
 User=root
 Group=root
 WorkingDirectory=/home/zulip-lichess
+Environment="REDIS_PASSWORD=c6409caf6657837d73965225bdf6b8fdc8a47e12bbae1b650fa153662f2c791c"
+Environment="REDIS_PORT=6379"
 ExecStart=/usr/bin/node dist/index.js
 Restart=always
 
