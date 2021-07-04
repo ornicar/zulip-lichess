@@ -1,3 +1,5 @@
+import { promisify } from 'util';
+
 export interface Zulip {
   queues: any;
   events: any;
@@ -55,21 +57,26 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
   let lastEventId = q.last_event_id;
   console.log(`Connected to zulip as @${me.full_name}, awaiting commands`);
   while (true) {
-    const res = await zulip.events.retrieve({
-      queue_id: q.queue_id,
-      last_event_id: lastEventId,
-    });
-    res.events.forEach(async (event: any) => {
-      lastEventId = event.id;
-      if (event.type == 'heartbeat') console.log('Zulip heartbeat');
-      else if (event.message) {
-        // ignore own messages
-        if (event.message.sender_id != me.user_id) {
-          event.message.command = event.message.content.replace(`@**${me.full_name}**`, '').trim();
-          await handler(event.message as ZulipMsg);
-        }
-      } else console.log(event);
-    });
+    try {
+      const res = await zulip.events.retrieve({
+        queue_id: q.queue_id,
+        last_event_id: lastEventId,
+      });
+      res.events.forEach(async (event: any) => {
+        lastEventId = event.id;
+        if (event.type == 'heartbeat') console.log('Zulip heartbeat');
+        else if (event.message) {
+          // ignore own messages
+          if (event.message.sender_id != me.user_id) {
+            event.message.command = event.message.content.replace(`@**${me.full_name}**`, '').trim();
+            await handler(event.message as ZulipMsg);
+          }
+        } else console.log(event);
+      });
+    } catch (e) {
+      console.error(e);
+      await promisify(setTimeout)(2000);
+    }
   }
 };
 
