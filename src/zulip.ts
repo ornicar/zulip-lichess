@@ -40,7 +40,7 @@ export type ZulipMsg = ZulipMsgStream | ZulipMsgPrivate;
 
 export interface ZulipDestStream {
   type: 'stream';
-  to: number;
+  to: number | string;
   topic: string;
 }
 
@@ -56,6 +56,7 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
   const me = await zulip.users.me.getProfile();
   let lastEventId = q.last_event_id;
   console.log(`Connected to zulip as @${me.full_name}, awaiting commands`);
+  await send(zulip, { type: 'stream', to: 'zulip', topic: 'bots log' }, 'I started.');
   while (true) {
     try {
       const res = await zulip.events.retrieve({
@@ -64,8 +65,9 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
       });
       res.events.forEach(async (event: any) => {
         lastEventId = event.id;
-        if (event.type == 'heartbeat') console.log('Zulip heartbeat');
-        else if (event.message) {
+        if (event.type == 'heartbeat') {
+          // console.log('Zulip heartbeat');
+        } else if (event.message) {
           // ignore own messages
           if (event.message.sender_id != me.user_id) {
             event.message.command = event.message.content.replace(`@**${me.full_name}**`, '').trim();
