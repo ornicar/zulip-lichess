@@ -35,9 +35,15 @@ export interface Help {
   verb: 'help';
 }
 
-type Command = ParrotAdd | ParrotDel | Hi | Fortune | Play | Help | ParrotGet;
+export interface Invite {
+  verb: 'invite';
+  user: string;
+  streams: string;
+}
 
-const all = new Set(['add', 'del', 'list', 'hi', 'hello', 'help', 'halp', 'h', 'fortune', 'play']);
+type Command = ParrotAdd | ParrotDel | Hi | Fortune | Play | Invite | Help | ParrotGet;
+
+const all = new Set(['add', 'del', 'list', 'hi', 'hello', 'help', 'halp', 'h', 'fortune', 'play', 'invite']);
 
 export const parseCommand = (cmd: string, _orig: ZulipOrig): Command => {
   const split = cmd.split(' ').map(t => t.trim());
@@ -50,6 +56,10 @@ export const parseCommand = (cmd: string, _orig: ZulipOrig): Command => {
   if (verb == 'hi' || verb == 'hello') return { verb: 'hi' };
   if (verb == 'help' || verb == 'halp' || verb == 'h') return { verb: 'help' };
   if (verb == 'play') return parsePlay(split);
+  if (verb == 'invite') {
+    const [user, streams] = split.slice(0);
+    return { verb: 'invite', user, streams };
+  }
   return { verb: 'parrotGet', key: cmd };
 };
 
