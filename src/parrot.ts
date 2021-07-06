@@ -12,6 +12,7 @@ export class RedisParrot implements Parrot {
   private client = createNodeRedisClient({
     port: parseInt(process.env.REDIS_PORT),
     password: process.env.REDIS_PASSWORD,
+    db: process.env.REDIS_DB,
   });
   private key = 'zulip-lichess-parrot';
 
