@@ -54,6 +54,10 @@ export type ZulipDest = ZulipDestStream | ZulipDestPrivate;
 export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Promise<void>) => {
   const q = await zulip.queues.register({ event_types: ['message'] });
   const me = await zulip.users.me.getProfile();
+  if (!me.full_name) {
+    console.log(me);
+    throw 'Could not connect to zulip!';
+  }
   let lastEventId = q.last_event_id;
   console.log(`Connected to zulip as @${me.full_name}, awaiting commands`);
   await send(zulip, { type: 'stream', to: 'zulip', topic: 'bots log' }, 'I started.');
@@ -78,6 +82,7 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
     } catch (e) {
       console.error(e);
       await promisify(setTimeout)(2000);
+      console.log('Retrying now.');
     }
   }
 };
