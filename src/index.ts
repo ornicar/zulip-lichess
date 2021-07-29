@@ -30,9 +30,6 @@ import { URLSearchParams } from 'url';
         case 'hi':
           reply(z, msg, ':wave: Why hello there!');
           break;
-        case 'fortune':
-          await fortune(msg);
-          break;
         case 'play':
           await play(msg, command);
           break;
@@ -63,12 +60,6 @@ import { URLSearchParams } from 'url';
     );
   };
 
-  const fortune = async (msg: ZulipMsg) => {
-    const res = await fetch('https://api.ef.gy/fortune');
-    const text = await res.text();
-    await reply(z, msg, text);
-  };
-
   const help = async (msg: ZulipMsg) => {
     const name = await botName(z);
     const mention = `@${name}`;
@@ -81,7 +72,6 @@ import { URLSearchParams } from 'url';
         '- `' + mention + ' del key` Delete the message associated with this key',
         '- `' + mention + ' play 3+2` Create a casual 3+2 open challenge for anyone to join',
         '- `' + mention + ' play 5+0 rated` Create a rated 5+0 open challenge for anyone to join',
-        '- `' + mention + ' fortune` Get a Linux kernel fortune message',
       ].join('\n')
     );
   };
