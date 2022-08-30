@@ -1,4 +1,4 @@
-import { promisify } from 'util';
+import { sleep } from './util';
 
 export interface Zulip {
   queues: any;
@@ -61,12 +61,27 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
   let lastEventId = q.last_event_id;
   console.log(`Connected to zulip as @${me.full_name}, awaiting commands`);
   await send(zulip, { type: 'stream', to: 'zulip', topic: 'bots log' }, 'I started.');
+
   while (true) {
+    const timeout = setTimeout(() => {
+      console.log('events.retrieve timed out. Exiting...');
+      process.exit();
+    }, (q.event_queue_longpoll_timeout_seconds ?? 90) * 1_000);
+
     try {
       const res = await zulip.events.retrieve({
         queue_id: q.queue_id,
         last_event_id: lastEventId,
       });
+      clearTimeout(timeout);
+
+      if (res.result !== 'success') {
+        console.error(`Got error response on events.retrieve: ${JSON.stringify(res)}`);
+        if (res.code === 'BAD_EVENT_QUEUE_ID') return;
+        await sleep(2000);
+        continue;
+      }
+
       res.events.forEach(async (event: any) => {
         lastEventId = event.id;
         if (event.type == 'heartbeat') {
@@ -85,7 +100,8 @@ export const messageLoop = async (zulip: Zulip, handler: (msg: ZulipMsg) => Prom
       });
     } catch (e) {
       console.error(e);
-      await promisify(setTimeout)(2000);
+      clearTimeout(timeout);
+      await sleep(2000);
       console.log('Retrying now.');
     }
   }

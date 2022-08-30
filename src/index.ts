@@ -4,6 +4,7 @@ import { parseCommand, Play } from './command';
 import { RedisParrot } from './parrot';
 import fetch from 'node-fetch';
 import { URLSearchParams } from 'url';
+import { sleep } from './util';
 
 (async () => {
   const z: Zulip = await zulipInit.default({ zuliprc: 'zuliprc' });
@@ -76,5 +77,8 @@ import { URLSearchParams } from 'url';
     );
   };
 
-  await messageLoop(z, messageHandler);
+  while (true) {
+    await messageLoop(z, messageHandler);
+    await sleep(10_000);
+  }
 })();
